@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Restaurant Finder v1.9</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#111827;
+      --card:#1f2937;
+      --line:#334155;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#38bdf8;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#0b1220,#111827);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .hero{background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+    h1{margin:0 0 6px 0;font-size:30px}
+    .sub{color:var(--muted);margin-bottom:16px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+    label{display:block;font-weight:bold;margin-bottom:6px}
+    input,select,button{width:100%;border-radius:10px;border:1px solid #475569;padding:11px 12px;font-size:16px}
+    input,select{background:#0b1220;color:var(--text)}
+    button{cursor:pointer;font-weight:bold;background:var(--accent);color:#062033;border:none}
+    button.secondary{background:#1e293b;color:var(--text);border:1px solid #475569}
+    button:hover{filter:brightness(1.05)}
+    .actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px}
+    .status{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0b1220;color:var(--muted);min-height:48px}
+    .ok{color:#bbf7d0}
+    .warn{color:#fde68a}
+    .bad{color:#fecaca}
+    .summary{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+    .pill{border:1px solid var(--line);background:#0b1220;border-radius:999px;padding:8px 12px;color:var(--muted);font-size:14px}
+    .results{margin-top:18px;display:grid;gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+    .card h3{margin:0 0 8px 0;font-size:22px}
+    .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;color:var(--muted);font-size:14px;margin-bottom:10px}
+    .links{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .links a{display:inline-block;text-decoration:none;padding:9px 12px;border-radius:10px;border:1px solid #475569;background:#0b1220;color:var(--text)}
+    .favrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#0b1220}
+    .favrow input[type="checkbox"]{width:18px;height:18px;margin:0;accent-color:#22c55e;cursor:pointer}
+    .favbadge{display:inline-block;margin-left:8px;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #166534;background:#052e16;color:#bbf7d0;vertical-align:middle}
+    .small{font-size:13px;color:var(--muted);margin-top:16px;line-height:1.4}
+    .favlist{margin-top:14px;border:1px solid var(--line);border-radius:14px;background:#0b1220;padding:10px;max-height:280px;overflow:auto}
+    .favitem{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px;border:1px solid #334155;border-radius:10px;background:#111827;margin-bottom:8px}
+    .favitem:last-child{margin-bottom:0}
+    .favitem-title{font-weight:bold}
+    .favitem-sub{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.35}
+    .tinybtn{width:auto;padding:7px 10px;font-size:13px;border-radius:8px;background:#1e293b;color:var(--text);border:1px solid #475569;cursor:pointer;margin-left:6px;margin-top:4px}
+    .footer{margin-top:20px;text-align:center;color:var(--muted);font-size:13px}
+    @media (max-width:640px){h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Restaurant Finder</h1>
+      <div class="sub">Find restaurants near your current location. Default search radius is 10 km.</div>
+
+      <div class="grid">
+        <div class="panel">
+          <label for="radiusKm">Search radius (km)</label>
+          <input id="radiusKm" type="number" min="1" max="50" step="1" value="10" />
+        </div>
+
+        <div class="panel">
+          <label for="limitCount">Maximum results</label>
+          <select id="limitCount">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+
+        <div class="panel">
+          <label for="sortBy">Sort by</label>
+          <select id="sortBy">
+            <option value="distance" selected>Distance</option>
+            <option value="name">Name</option>
+          </select>
+        </div>
+
+        <div class="panel">
+          <label for="restaurantSearchName">Search restaurant name</label>
+          <input id="restaurantSearchName" type="text" placeholder="e.g. Tim Hortons or Boston Pizza" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnFind">Find restaurants near me</button>
+        <button id="btnSearchByName" class="secondary">Search for restaurant name</button>
+        <button id="btnUseCoords" class="secondary">Use my GPS position</button>
+        <button id="btnClear" class="secondary">Clear results</button>
+      </div>
+
+      <div class="status" id="status">Ready.</div>
+
+      <div class="summary">
+        <div class="pill" id="locationPill">Location: not set</div>
+        <div class="pill" id="countPill">Results: 0</div>
+      </div>
+
+      <div class="panel" style="margin-top:14px;">
+        <label for="favoriteSelect">Saved favourite locations and restaurants</label>
+        <div class="grid">
+          <div>
+            <input id="favoriteName" type="text" placeholder="Enter a name, e.g. Home or Cottage" />
+          </div>
+          <div>
+            <select id="favoriteSelect">
+              <option value="">-- Select a saved item --</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btnSaveFavorite" class="secondary">Save current location</button>
+          <button id="btnLoadFavorite" class="secondary">Recall saved item</button>
+          <button id="btnDeleteFavorite" class="secondary">Delete saved item</button>
+          <button id="btnExportFavorites" class="secondary">Export favourites to JSON</button>
+          <button id="btnImportFavorites" class="secondary">Import favourites from JSON</button>
+        </div>
+        <input id="importFavoritesFile" type="file" accept=".json,application/json" style="display:none" />
+
+        <div class="panel" style="margin-top:14px;">
+          <label>Manual location entry</label>
+          <div class="grid">
+            <div>
+              <input id="manualLocationName" type="text" placeholder="Location name, e.g. Marina, Camp, Dock" />
+            </div>
+            <div>
+              <input id="manualLat" type="number" step="any" placeholder="Latitude, e.g. 43.2565" />
+            </div>
+            <div>
+              <input id="manualLon" type="number" step="any" placeholder="Longitude, e.g. -79.8711" />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="btnSaveManualLocation" class="secondary">Save manual location to favourites</button>
+          </div>
+        </div>
+
+        <div class="favlist" id="favoritesListBox"></div>
+      </div>
+
+      <div class="small">
+        Notes: This app uses your browser GPS location and OpenStreetMap/Overpass data. Internet access is required when searching. This version tries backup map servers automatically if one is busy or times out. You can also manually save a location by name with latitude and longitude.
+      </div>
+    </div>
+
+    <div class="results" id="results"></div>
+
+    <div class="footer">Restaurant Finder v1.9 © 2026 Glen Carruthers. All rights reserved.</div>
+  </div>
+
+<script>
+(() => {
+  const radiusKm = document.getElementById("radiusKm");
+  const limitCount = document.getElementById("limitCount");
+  const sortBy = document.getElementById("sortBy");
+  const restaurantSearchName = document.getElementById("restaurantSearchName");
+  const btnFind = document.getElementById("btnFind");
+  const btnSearchByName = document.getElementById("btnSearchByName");
+  const btnUseCoords = document.getElementById("btnUseCoords");
+  const btnClear = document.getElementById("btnClear");
+  const statusEl = document.getElementById("status");
+  const resultsEl = document.getElementById("results");
+  const locationPill = document.getElementById("locationPill");
+  const countPill = document.getElementById("countPill");
+  const favoriteName = document.getElementById("favoriteName");
+  const favoriteSelect = document.getElementById("favoriteSelect");
+  const btnSaveFavorite = document.getElementById("btnSaveFavorite");
+  const btnLoadFavorite = document.getElementById("btnLoadFavorite");
+  const btnDeleteFavorite = document.getElementById("btnDeleteFavorite");
+  const btnExportFavorites = document.getElementById("btnExportFavorites");
+  const btnImportFavorites = document.getElementById("btnImportFavorites");
+  const importFavoritesFile = document.getElementById("importFavoritesFile");
+  const favoritesListBox = document.getElementById("favoritesListBox");
+  const manualLocationName = document.getElementById("manualLocationName");
+  const manualLat = document.getElementById("manualLat");
+  const manualLon = document.getElementById("manualLon");
+  const btnSaveManualLocation = document.getElementById("btnSaveManualLocation");
+
+  let currentLat = null;
+  let currentLon = null;
+  let currentResults = [];
+
+  function setStatus(message, type = "") {
+    statusEl.className = "status";
+    if (type) statusEl.classList.add(type);
+    statusEl.innerHTML = message;
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  function formatAddress(tags) {
+    const parts = [
+      tags["addr:housenumber"],
+      tags["addr:street"],
+      tags["addr:city"] || tags["addr:town"] || tags["addr:village"],
+      tags["addr:province"] || tags["addr:state"],
+      tags["addr:postcode"]
+    ].filter(Boolean);
+    return parts.join(", ");
+  }
+
+  function isValidLatitude(lat) { return Number.isFinite(lat) && lat >= -90 && lat <= 90; }
+  function isValidLongitude(lon) { return Number.isFinite(lon) && lon >= -180 && lon <= 180; }
+
+  function setCurrentLocation(lat, lon, labelPrefix = "Location") {
+    currentLat = Number(lat);
+    currentLon = Number(lon);
+    locationPill.textContent = `${labelPrefix}: ${currentLat.toFixed(5)}, ${currentLon.toFixed(5)}`;
+  }
+
+  function getFavorites() {
+    try { return JSON.parse(localStorage.getItem("restaurantFinderFavorites") || "[]"); }
+    catch (e) { return []; }
+  }
+  function saveFavorites(list) {
+    localStorage.setItem("restaurantFinderFavorites", JSON.stringify(list));
+  }
+
+  function saveNamedLocation(name, lat, lon) {
+    const cleanName = String(name || "").trim();
+    const latNum = Number(lat);
+    const lonNum = Number(lon);
+    if (!cleanName) throw new Error("Please enter a name for the location.");
+    if (!isValidLatitude(latNum)) throw new Error("Latitude must be between -90 and 90.");
+    if (!isValidLongitude(lonNum)) throw new Error("Longitude must be between -180 and 180.");
+
+    const list = getFavorites();
+    const existingIndex = list.findIndex(f => f.name.toLowerCase() === cleanName.toLowerCase());
+    const entry = { name: cleanName, lat: latNum, lon: lonNum, savedAt: new Date().toISOString() };
+    if (existingIndex >= 0) list[existingIndex] = entry; else list.push(entry);
+    saveFavorites(list);
+    refreshFavoritesUI();
+    return entry;
+  }
+
+  function getRestaurantFavorites() {
+    try { return JSON.parse(localStorage.getItem("restaurantFinderRestaurantFavorites") || "[]"); }
+    catch (e) { return []; }
+  }
+  function saveRestaurantFavorites(list) {
+    localStorage.setItem("restaurantFinderRestaurantFavorites", JSON.stringify(list));
+  }
+
+  function makeRestaurantFavoriteId(item) {
+    return [(item.tags?.name || "Unnamed restaurant").trim().toLowerCase(), Number(item.lat).toFixed(5), Number(item.lon).toFixed(5)].join("|");
+  }
+  function isRestaurantFavorited(item) {
+    const id = makeRestaurantFavoriteId(item);
+    return getRestaurantFavorites().some(f => f.id === id);
+  }
+  function toggleRestaurantFavorite(item, checked) {
+    const list = getRestaurantFavorites();
+    const id = makeRestaurantFavoriteId(item);
+    const existingIndex = list.findIndex(f => f.id === id);
+    if (checked) {
+      const entry = {
+        id, type: "restaurant", name: item.tags?.name || "Unnamed restaurant",
+        lat: Number(item.lat), lon: Number(item.lon), address: formatAddress(item.tags || {}),
+        cuisine: item.tags?.cuisine || "", phone: item.tags?.phone || item.tags?.["contact:phone"] || "",
+        website: item.tags?.website || item.tags?.["contact:website"] || "", savedAt: new Date().toISOString()
+      };
+      if (existingIndex >= 0) list[existingIndex] = entry; else list.push(entry);
+    } else if (existingIndex >= 0) {
+      list.splice(existingIndex, 1);
+    }
+    saveRestaurantFavorites(list);
+    refreshFavoritesUI();
+  }
+
+  function renderFavoritesListBox(locationList, restaurantList) {
+    favoritesListBox.innerHTML = "";
+    const combined = [
+      ...locationList.map((fav, idx) => ({ kind: "loc", idx, ...fav })),
+      ...restaurantList.map((fav, idx) => ({ kind: "rest", idx, ...fav }))
+    ];
+    if (!combined.length) {
+      favoritesListBox.innerHTML = '<div class="favitem"><div><div class="favitem-title">No saved favourites yet</div><div class="favitem-sub">Save a location, enter one manually, or tick a restaurant favourite and it will appear here.</div></div></div>';
+      return;
+    }
+
+    combined.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "favitem";
+      const icon = item.kind === "loc" ? "📍" : "🍽";
+      const subtitle = item.kind === "loc"
+        ? `${Number(item.lat).toFixed(5)}, ${Number(item.lon).toFixed(5)}`
+        : `${item.address || "Address not listed"} | ${Number(item.lat).toFixed(5)}, ${Number(item.lon).toFixed(5)}`;
+
+      row.innerHTML = `
+        <div>
+          <div class="favitem-title">${icon} ${escapeHtml(item.name || "Unnamed")}</div>
+          <div class="favitem-sub">${escapeHtml(subtitle)}</div>
+        </div>
+        <div>
+          <button class="tinybtn" data-action="recall">Recall</button>
+          <button class="tinybtn" data-action="delete">Delete</button>
+          <button class="tinybtn" data-action="map">Map</button>
+        </div>
+      `;
+      row.querySelector('[data-action="recall"]').addEventListener("click", () => {
+        favoriteSelect.value = `${item.kind}|${item.idx}`;
+        btnLoadFavorite.click();
+      });
+      row.querySelector('[data-action="delete"]').addEventListener("click", () => {
+        favoriteSelect.value = `${item.kind}|${item.idx}`;
+        btnDeleteFavorite.click();
+      });
+      row.querySelector('[data-action="map"]').addEventListener("click", () => {
+        window.open(`https://www.google.com/maps?q=${Number(item.lat)},${Number(item.lon)}`, "_blank");
+      });
+      favoritesListBox.appendChild(row);
+    });
+  }
+
+  function refreshFavoritesUI() {
+    const locationList = getFavorites().slice().sort((a, b) => a.name.localeCompare(b.name));
+    const restaurantList = getRestaurantFavorites().slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    favoriteSelect.innerHTML = '<option value="">-- Select a saved item --</option>';
+    locationList.forEach((fav, idx) => {
+      const opt = document.createElement("option");
+      opt.value = `loc|${idx}`;
+      opt.textContent = `📍 ${fav.name} (${Number(fav.lat).toFixed(5)}, ${Number(fav.lon).toFixed(5)})`;
+      favoriteSelect.appendChild(opt);
+    });
+    restaurantList.forEach((fav, idx) => {
+      const opt = document.createElement("option");
+      opt.value = `rest|${idx}`;
+      const addr = fav.address ? ` - ${fav.address}` : "";
+      opt.textContent = `🍽 ${fav.name} (${Number(fav.lat).toFixed(5)}, ${Number(fav.lon).toFixed(5)})${addr}`;
+      favoriteSelect.appendChild(opt);
+    });
+    renderFavoritesListBox(locationList, restaurantList);
+  }
+
+  function renderResults(items) {
+    resultsEl.innerHTML = "";
+    countPill.textContent = "Results: " + items.length;
+    if (!items.length) {
+      resultsEl.innerHTML = '<div class="card">No restaurants found in the selected radius.</div>';
+      return;
+    }
+    items.forEach((item, idx) => {
+      const tags = item.tags || {};
+      const name = tags.name || "Unnamed restaurant";
+      const cuisine = tags.cuisine ? tags.cuisine.replaceAll(";", ", ") : "Not listed";
+      const address = formatAddress(tags) || "Address not listed";
+      const phone = tags.phone || tags["contact:phone"] || "Not listed";
+      const website = tags.website || tags["contact:website"] || "";
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.lat + "," + item.lon)}`;
+      const osmLink = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(item.lat)}&mlon=${encodeURIComponent(item.lon)}#map=18/${encodeURIComponent(item.lat)}/${encodeURIComponent(item.lon)}`;
+      const favChecked = isRestaurantFavorited(item);
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <h3>${idx + 1}. ${escapeHtml(name)} ${favChecked ? '<span class="favbadge">Saved favourite</span>' : ''}</h3>
+        <div class="meta">
+          <div><strong>Distance:</strong> ${Number(item.distance || 0).toFixed(2)} km</div>
+          <div><strong>Cuisine:</strong> ${escapeHtml(cuisine)}</div>
+          <div><strong>Phone:</strong> ${escapeHtml(phone)}</div>
+          <div><strong>Address:</strong> ${escapeHtml(address)}</div>
+        </div>
+        <label class="favrow">
+          <input type="checkbox" class="restaurant-fav-checkbox" ${favChecked ? 'checked' : ''} />
+          <span>Save this restaurant as a favourite location</span>
+        </label>
+        <div class="links">
+          <a href="${mapsLink}" target="_blank" rel="noopener">Open in Google Maps</a>
+          <a href="${osmLink}" target="_blank" rel="noopener">Open in OpenStreetMap</a>
+          ${website ? `<a href="${escapeHtml(website)}" target="_blank" rel="noopener">Website</a>` : ""}
+        </div>
+      `;
+      card.querySelector(".restaurant-fav-checkbox").addEventListener("change", (e) => {
+        toggleRestaurantFavorite(item, e.target.checked);
+        setStatus(e.target.checked ? `Saved restaurant favourite: ${name}` : `Removed restaurant favourite: ${name}`, e.target.checked ? "ok" : "warn");
+        renderResults(currentResults);
+      });
+      resultsEl.appendChild(card);
+    });
+  }
+
+  async function fetchFromEndpoint(endpoint, query) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 45000);
+    try {
+      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: query, signal: controller.signal });
+      if (!response.ok) throw new Error("Search service returned " + response.status);
+      return await response.json();
+    } finally { clearTimeout(timer); }
+  }
+
+  async function fetchRestaurants(lat, lon, nameFilter = "") {
+    const radiusMeters = Math.max(1000, Math.min(50000, Number(radiusKm.value || 10) * 1000));
+    const limit = Number(limitCount.value || 20);
+    const filterText = String(nameFilter || "").trim().toLowerCase();
+    const query = `
+      [out:json][timeout:40];
+      (
+        node["amenity"="restaurant"](around:${radiusMeters},${lat},${lon});
+        way["amenity"="restaurant"](around:${radiusMeters},${lat},${lon});
+        relation["amenity"="restaurant"](around:${radiusMeters},${lat},${lon});
+        node["amenity"="fast_food"](around:${radiusMeters},${lat},${lon});
+        way["amenity"="fast_food"](around:${radiusMeters},${lat},${lon});
+        relation["amenity"="fast_food"](around:${radiusMeters},${lat},${lon});
+        node["amenity"="cafe"](around:${radiusMeters},${lat},${lon});
+        way["amenity"="cafe"](around:${radiusMeters},${lat},${lon});
+        relation["amenity"="cafe"](around:${radiusMeters},${lat},${lon});
+      );
+      out center tags;`;
+    const endpoints = [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.private.coffee/api/interpreter",
+      "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+    ];
+    let lastError = null;
+
+    for (let i = 0; i < endpoints.length; i++) {
+      try {
+        setStatus(`Searching map data... trying server ${i + 1} of ${endpoints.length}`, "warn");
+        const data = await fetchFromEndpoint(endpoints[i], query);
+        const items = (data.elements || []).map(el => {
+          const itemLat = el.lat ?? el.center?.lat;
+          const itemLon = el.lon ?? el.center?.lon;
+          return { ...el, lat: itemLat, lon: itemLon, distance: haversineKm(lat, lon, itemLat, itemLon) };
+        }).filter(el => Number.isFinite(el.lat) && Number.isFinite(el.lon));
+
+        const unique = [];
+        const seen = new Set();
+        for (const item of items) {
+          const key = `${(item.tags?.name || "").trim().toLowerCase()}|${Number(item.lat).toFixed(5)}|${Number(item.lon).toFixed(5)}`;
+          if (!seen.has(key)) { seen.add(key); unique.push(item); }
+        }
+
+        let filtered = unique;
+        if (filterText) filtered = unique.filter(item => String(item.tags?.name || "").toLowerCase().includes(filterText));
+        filtered.sort((a, b) => sortBy.value === "name" ? (a.tags?.name || "").localeCompare(b.tags?.name || "") : a.distance - b.distance);
+        return filtered.slice(0, limit);
+      } catch (err) { lastError = err; }
+    }
+    if (String(lastError && lastError.name) === "AbortError") throw new Error("Restaurant search timed out on all servers. Please try again or reduce the search radius.");
+    throw new Error((lastError && lastError.message) ? lastError.message + ". Please try again or reduce the search radius." : "Search failed on all servers.");
+  }
+
+  function getLocation() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("Geolocation is not supported by this browser."));
+      navigator.geolocation.getCurrentPosition(
+        pos => { setCurrentLocation(pos.coords.latitude, pos.coords.longitude, "Location"); resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }); },
+        err => reject(new Error("Could not get your location: " + err.message)),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      );
+    });
+  }
+
+  async function runSearch(nameFilter = "") {
+    try {
+      btnFind.disabled = true; btnSearchByName.disabled = true; btnUseCoords.disabled = true;
+      setStatus("Getting your location...", "warn");
+      let lat = currentLat, lon = currentLon;
+      if (lat == null || lon == null) {
+        const pos = await getLocation();
+        lat = pos.lat; lon = pos.lon;
+      }
+      currentResults = await fetchRestaurants(lat, lon, nameFilter);
+      renderResults(currentResults);
+      setStatus(nameFilter ? `Name search complete. Found ${currentResults.length} matching restaurant(s).` : `Search complete. Found ${currentResults.length} restaurant(s).`, "ok");
+    } catch (err) {
+      setStatus(escapeHtml(err.message || "Search failed."), "bad");
+    } finally {
+      btnFind.disabled = false; btnSearchByName.disabled = false; btnUseCoords.disabled = false;
+    }
+  }
+
+  function downloadTextFile(filename, text, mimeType = "application/json") {
+    const blob = new Blob([text], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  btnFind.addEventListener("click", () => runSearch(""));
+  btnSearchByName.addEventListener("click", () => {
+    const term = String(restaurantSearchName.value || "").trim();
+    if (!term) { setStatus("Please enter a restaurant name to search for.", "bad"); restaurantSearchName.focus(); return; }
+    runSearch(term);
+  });
+  restaurantSearchName.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); btnSearchByName.click(); }
+  });
+
+  btnUseCoords.addEventListener("click", async () => {
+    try { btnUseCoords.disabled = true; setStatus("Getting your GPS position...", "warn"); await getLocation(); setStatus("Location updated. Press a search button to search.", "ok"); }
+    catch (err) { setStatus(escapeHtml(err.message || "Unable to get location."), "bad"); }
+    finally { btnUseCoords.disabled = false; }
+  });
+
+  btnClear.addEventListener("click", () => {
+    currentResults = []; resultsEl.innerHTML = ""; countPill.textContent = "Results: 0"; setStatus("Cleared.", "");
+  });
+
+  btnSaveFavorite.addEventListener("click", async () => {
+    try {
+      let lat = currentLat, lon = currentLon;
+      if (lat == null || lon == null) {
+        setStatus("Getting your location before saving...", "warn");
+        const pos = await getLocation();
+        lat = pos.lat; lon = pos.lon;
+      }
+      const name = (favoriteName.value || "").trim();
+      if (!name) { setStatus("Please enter a name for the saved location.", "bad"); favoriteName.focus(); return; }
+      saveNamedLocation(name, lat, lon);
+      favoriteName.value = "";
+      setStatus(`Saved favourite location: ${name}`, "ok");
+    } catch (err) {
+      setStatus(escapeHtml(err.message || "Could not save favourite location."), "bad");
+    }
+  });
+
+  btnLoadFavorite.addEventListener("click", () => {
+    const value = favoriteSelect.value;
+    if (!value) return setStatus("Please select a saved item to recall.", "bad");
+    const [kind, idxText] = value.split("|");
+    const idx = Number(idxText);
+
+    if (kind === "loc") {
+      const list = getFavorites().slice().sort((a, b) => a.name.localeCompare(b.name));
+      const fav = list[idx];
+      if (!fav) return setStatus("Saved location not found.", "bad");
+      setCurrentLocation(fav.lat, fav.lon, `Saved: ${fav.name}`);
+      return setStatus(`Recalled saved location: ${fav.name}. Press a search button to search this location.`, "ok");
+    }
+    if (kind === "rest") {
+      const list = getRestaurantFavorites().slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      const fav = list[idx];
+      if (!fav) return setStatus("Saved restaurant not found.", "bad");
+      setCurrentLocation(fav.lat, fav.lon, `Restaurant: ${fav.name}`);
+      return setStatus(`Recalled restaurant favourite: ${fav.name}. Press a search button to search this area.`, "ok");
+    }
+    setStatus("Saved item not found.", "bad");
+  });
+
+  btnDeleteFavorite.addEventListener("click", () => {
+    const value = favoriteSelect.value;
+    if (!value) return setStatus("Please select a saved item to delete.", "bad");
+    const [kind, idxText] = value.split("|");
+    const idx = Number(idxText);
+
+    if (kind === "loc") {
+      const list = getFavorites().slice().sort((a, b) => a.name.localeCompare(b.name));
+      const fav = list[idx];
+      if (!fav) return setStatus("Saved location not found.", "bad");
+      const remaining = getFavorites().filter(f => !(f.name === fav.name && Number(f.lat) === Number(fav.lat) && Number(f.lon) === Number(fav.lon)));
+      saveFavorites(remaining); refreshFavoritesUI();
+      return setStatus(`Deleted saved location: ${fav.name}`, "ok");
+    }
+    if (kind === "rest") {
+      const list = getRestaurantFavorites().slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      const fav = list[idx];
+      if (!fav) return setStatus("Saved restaurant not found.", "bad");
+      const remaining = getRestaurantFavorites().filter(f => f.id !== fav.id);
+      saveRestaurantFavorites(remaining); refreshFavoritesUI(); renderResults(currentResults);
+      return setStatus(`Deleted restaurant favourite: ${fav.name}`, "ok");
+    }
+    setStatus("Saved item not found.", "bad");
+  });
+
+  btnExportFavorites.addEventListener("click", () => {
+    const payload = { app: "Restaurant Finder", version: "v1.9", exportedAt: new Date().toISOString(), locations: getFavorites(), restaurants: getRestaurantFavorites() };
+    downloadTextFile("restaurant_favourites_v1_9.json", JSON.stringify(payload, null, 2));
+    setStatus("Favourites exported to JSON file.", "ok");
+  });
+
+  btnImportFavorites.addEventListener("click", () => { importFavoritesFile.value = ""; importFavoritesFile.click(); });
+
+  importFavoritesFile.addEventListener("change", async (event) => {
+    try {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const importedLocations = Array.isArray(data.locations) ? data.locations : [];
+      const importedRestaurants = Array.isArray(data.restaurants) ? data.restaurants : [];
+      if (!importedLocations.length && !importedRestaurants.length) return setStatus("The selected JSON file did not contain any favourites to import.", "bad");
+
+      const mergedLocationsMap = new Map();
+      [...getFavorites(), ...importedLocations].forEach(item => {
+        if (item && item.name != null && item.lat != null && item.lon != null) {
+          const lat = Number(item.lat), lon = Number(item.lon);
+          if (!isValidLatitude(lat) || !isValidLongitude(lon)) return;
+          const key = `${String(item.name).trim().toLowerCase()}|${lat.toFixed(5)}|${lon.toFixed(5)}`;
+          mergedLocationsMap.set(key, { name: String(item.name), lat, lon, savedAt: item.savedAt || new Date().toISOString() });
+        }
+      });
+
+      const mergedRestaurantsMap = new Map();
+      [...getRestaurantFavorites(), ...importedRestaurants].forEach(item => {
+        if (item && item.name != null && item.lat != null && item.lon != null) {
+          const lat = Number(item.lat), lon = Number(item.lon);
+          if (!isValidLatitude(lat) || !isValidLongitude(lon)) return;
+          const id = item.id || `${String(item.name).trim().toLowerCase()}|${lat.toFixed(5)}|${lon.toFixed(5)}`;
+          mergedRestaurantsMap.set(id, {
+            id, type: "restaurant", name: String(item.name), lat, lon,
+            address: item.address || "", cuisine: item.cuisine || "", phone: item.phone || "", website: item.website || "",
+            savedAt: item.savedAt || new Date().toISOString()
+          });
+        }
+      });
+
+      saveFavorites([...mergedLocationsMap.values()]);
+      saveRestaurantFavorites([...mergedRestaurantsMap.values()]);
+      refreshFavoritesUI(); renderResults(currentResults);
+      setStatus(`Imported ${importedLocations.length + importedRestaurants.length} favourite item(s) from JSON.`, "ok");
+    } catch (err) {
+      setStatus("Could not import JSON favourites file.", "bad");
+    }
+  });
+
+  btnSaveManualLocation.addEventListener("click", () => {
+    try {
+      const name = String(manualLocationName.value || "").trim();
+      const lat = Number(manualLat.value);
+      const lon = Number(manualLon.value);
+      saveNamedLocation(name, lat, lon);
+      setCurrentLocation(lat, lon, `Manual: ${name}`);
+      manualLocationName.value = ""; manualLat.value = ""; manualLon.value = "";
+      setStatus(`Saved manual location: ${name}`, "ok");
+    } catch (err) {
+      setStatus(escapeHtml(err.message || "Could not save manual location."), "bad");
+    }
+  });
+
+  [manualLocationName, manualLat, manualLon].forEach(el => {
+    el.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); btnSaveManualLocation.click(); }
+    });
+  });
+
+  refreshFavoritesUI();
+})();
+</script>
+</body>
+</html>
